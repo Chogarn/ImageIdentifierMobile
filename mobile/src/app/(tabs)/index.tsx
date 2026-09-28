@@ -1,6 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { AuthGuard } from '../../components/auth/AuthGuard';
 import { Card } from '../../components/ui/Card';
@@ -11,21 +12,25 @@ const options = [
     label: 'Animales',
     icon: 'paw' as const,
     description: 'Identifica animales',
+    href: '/animals' as const,
   },
   {
     label: 'Plantas',
     icon: 'flower' as const,
     description: 'Identifica plantas',
+    href: '/plants' as const,
   },
   {
     label: 'Cámara',
     icon: 'camera' as const,
     description: 'Captura una imagen',
+    href: '/camera' as const,
   },
 ];
 
 export default function DashboardScreen() {
   const { user } = useAuth();
+  const router = useRouter();
 
   return (
     <AuthGuard>
@@ -42,7 +47,11 @@ export default function DashboardScreen() {
 
         <View style={styles.cardsContainer}>
           {options.map((opt) => (
-            <Card key={opt.label} style={styles.card}>
+            <Card
+              key={opt.label}
+              style={styles.card}
+              onPress={() => router.push(opt.href)}
+            >
               <View style={styles.cardContent}>
                 <MaterialCommunityIcons
                   name={opt.icon}

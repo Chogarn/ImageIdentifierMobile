@@ -33,7 +33,14 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "ImageIdentifier necesita acceder a la cámara para identificar plantas y animales.",
+          "photosPermission": "ImageIdentifier necesita acceder a tus fotos para identificar plantas y animales."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false,
