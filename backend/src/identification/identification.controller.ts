@@ -10,8 +10,11 @@ import {
   Get,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { IdentificationService } from './identification.service';
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 @Controller('identification')
 export class IdentificationController {
@@ -20,11 +23,18 @@ export class IdentificationController {
   ) {}
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('identify')
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(
+    FileInterceptor('image', { limits: { fileSize: MAX_IMAGE_BYTES } }),
+  )
   async identify(@UploadedFile() file: Express.Multer.File, @Request() req) {
     if (!file) {
       throw new BadRequestException('No se recibió ninguna imagen');
+    }
+
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('El archivo debe ser una imagen');
     }
 
     return this.identificationService.identify(

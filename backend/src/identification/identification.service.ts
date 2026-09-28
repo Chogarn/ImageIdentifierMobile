@@ -1,9 +1,14 @@
-import { Injectable, BadGatewayException } from '@nestjs/common';
+import {
+  Injectable,
+  BadGatewayException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Identification } from './entities/identification.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 
 // la interfaz IdentificationResult define la estructura de los datos que se esperan recibir del modelo de IA generativa. 
 // Esta interfaz asegura que los datos tengan el formato correcto antes de ser guardados en la base de datos.
@@ -20,6 +25,9 @@ export interface IdentificationResult {
 @Injectable()
 export class IdentificationService {
   private readonly genAI: GoogleGenerativeAI;
+  // timestamps (ms) de las últimas llamadas a Gemini, para el cupo por minuto.
+  // vive en memoria del proceso: alcanza para un proyecto personal de un solo backend.
+  private geminiCallTimestamps: number[] = [];
 
   // el constructor del servicio de identificación inyecta el ConfigService para acceder a las variables de entorno y el repositorio de identificaciones para interactuar con la base de datos.
   constructor(
@@ -31,12 +39,55 @@ export class IdentificationService {
     this.genAI = new GoogleGenerativeAI(apiKey as string);
   }
 
+  // corta ANTES de llamar a Gemini si nos acercamos al free tier (diario o por minuto),
+  // dejando margen bajo los límites reales documentados por Google.
+  private async ensureWithinGeminiFreeTier(): Promise<void> {
+    const dailyLimit = Number(
+      this.configService.get<string>('GEMINI_DAILY_LIMIT') ?? 800,
+    );
+    const rpmLimit = Number(
+      this.configService.get<string>('GEMINI_RPM_LIMIT') ?? 8,
+    );
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const todayCount = await this.identificationRepository.count({
+      where: { createdAt: Between(startOfDay, endOfDay) },
+    });
+
+    if (todayCount >= dailyLimit) {
+      throw new HttpException(
+        'Se alcanzó el límite diario de identificaciones. Probá de nuevo mañana.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const now = Date.now();
+    this.geminiCallTimestamps = this.geminiCallTimestamps.filter(
+      (ts) => now - ts < 60_000,
+    );
+
+    if (this.geminiCallTimestamps.length >= rpmLimit) {
+      throw new HttpException(
+        'Demasiadas identificaciones en poco tiempo. Esperá un minuto y probá de nuevo.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    this.geminiCallTimestamps.push(now);
+  }
+
   // el método identify recibe una imagen, la procesa utilizando el modelo de IA generativa y guarda el resultado en la base de datos.
   async identify(
     imageBuffer: Buffer,
     mimeType: string,
     userId: string,
   ): Promise<Identification> {
+    // corta acá si estamos cerca del free tier de Gemini, antes de gastar una llamada real.
+    await this.ensureWithinGeminiFreeTier();
 
     // se configura el modelo de IA generativa con el tipo de respuesta esperada y el esquema de la respuesta. Esto asegura que los datos recibidos del modelo tengan el formato correcto.
     const model = this.genAI.getGenerativeModel({
