@@ -15,6 +15,17 @@ export async function removeToken(): Promise<void> {
   await SecureStore.deleteItemAsync(TOKEN_KEY);
 }
 
+// error de la API con el código HTTP; status 0 significa que no hubo respuesta (sin red, servidor apagado).
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 interface RequestOptions extends Omit<RequestInit, 'headers'> {
   headers?: Record<string, string>;
 }
@@ -46,14 +57,17 @@ export async function apiClient<T = unknown>(
     });
   } catch {
     // fetch solo lanza si no hubo respuesta (sin red, servidor apagado).
-    throw new Error(
+    throw new ApiError(
       'No pudimos conectar con el servidor. Revisá tu conexión y reintentá.',
+      0,
     );
   }
 
-  if (response.status === 401) {
+  // un 401 con token enviado significa sesión vencida. Sin token (ej: login con
+  // contraseña mal) es un error normal y se muestra el mensaje del backend.
+  if (response.status === 401 && token) {
     await removeToken();
-    throw new Error('Sesión expirada. Inicia sesión de nuevo.');
+    throw new ApiError('Sesión expirada. Inicia sesión de nuevo.', 401);
   }
 
   // el DELETE responde 204 sin cuerpo, y un error de proxy/servidor puede no ser JSON.
@@ -64,7 +78,7 @@ export async function apiClient<T = unknown>(
     const message = Array.isArray(data?.message)
       ? data.message.join('. ')
       : data?.message;
-    throw new Error(message || 'Error en la solicitud');
+    throw new ApiError(message || 'Error en la solicitud', response.status);
   }
 
   return data as T;

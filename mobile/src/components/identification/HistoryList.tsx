@@ -12,11 +12,26 @@ import type { Identification } from '../../types';
 
 interface HistoryListProps {
   title: string;
-  tipo: 'planta' | 'animal';
+  tipo: 'planta' | 'animal' | 'desconocido';
   emptyHint: string;
+  emptyTitle?: string;
 }
 
-export function HistoryList({ title, tipo, emptyHint }: HistoryListProps) {
+function formatDate(iso?: string) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('es-AR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+export function HistoryList({
+  title,
+  tipo,
+  emptyHint,
+  emptyTitle = 'Todavía no tenés identificaciones.',
+}: HistoryListProps) {
   const router = useRouter();
   const [items, setItems] = useState<Identification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,27 +81,31 @@ export function HistoryList({ title, tipo, emptyHint }: HistoryListProps) {
           <View style={styles.center}>
             <ActivityIndicator size="large" color={COLORS.primary} />
           </View>
-        ) : error && items.length === 0 ? (
-          <View style={styles.center}>
-            <Text style={styles.emptyTitle}>{error}</Text>
-            <Button mode="outlined" onPress={retry}>
-              Reintentar
-            </Button>
-          </View>
-        ) : items.length === 0 ? (
-          <View style={styles.center}>
-            <Text style={styles.emptyTitle}>
-              Todavía no tenés identificaciones.
-            </Text>
-            <Text style={styles.emptyHint}>{emptyHint}</Text>
-          </View>
         ) : (
+          // la lista se dibuja siempre (también vacía) para que funcione el pull-to-refresh.
           <FlatList
             data={items}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={
+              items.length === 0 ? styles.emptyList : styles.list
+            }
             refreshing={refreshing}
             onRefresh={onRefresh}
+            ListEmptyComponent={
+              error ? (
+                <View style={styles.center}>
+                  <Text style={styles.emptyTitle}>{error}</Text>
+                  <Button mode="outlined" onPress={retry}>
+                    Reintentar
+                  </Button>
+                </View>
+              ) : (
+                <View style={styles.center}>
+                  <Text style={styles.emptyTitle}>{emptyTitle}</Text>
+                  <Text style={styles.emptyHint}>{emptyHint}</Text>
+                </View>
+              )
+            }
             renderItem={({ item }) => (
               <Card
                 style={styles.card}
@@ -98,14 +117,26 @@ export function HistoryList({ title, tipo, emptyHint }: HistoryListProps) {
                 }
               >
                 <View style={styles.cardContent}>
-                  <Text style={styles.nombre}>{item.nombreComun}</Text>
-                  <Text style={styles.cientifico}>
-                    {item.nombreCientifico}
-                  </Text>
-                  <Text style={styles.descripcion}>{item.descripcion}</Text>
-                  <Text style={styles.meta}>
-                    Familia: {item.familia} · Confianza: {item.nivelConfianza}
-                  </Text>
+                  {item.tipo === 'desconocido' ? (
+                    <>
+                      <Text style={styles.nombre}>No reconocida</Text>
+                      <Text style={styles.cientifico}>
+                        {formatDate(item.createdAt)}
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.nombre}>{item.nombreComun}</Text>
+                      <Text style={styles.cientifico}>
+                        {item.nombreCientifico}
+                      </Text>
+                      <Text style={styles.descripcion}>{item.descripcion}</Text>
+                      <Text style={styles.meta}>
+                        Familia: {item.familia} · Confianza:{' '}
+                        {item.nivelConfianza}
+                      </Text>
+                    </>
+                  )}
                 </View>
               </Card>
             )}
@@ -142,6 +173,9 @@ const styles = StyleSheet.create({
   list: {
     padding: 20,
     gap: 12,
+  },
+  emptyList: {
+    flexGrow: 1,
   },
   card: {
     marginBottom: 0,

@@ -1,4 +1,4 @@
-import { View, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -26,6 +26,12 @@ const options = [
     description: 'Captura una imagen',
     href: '/camera' as const,
   },
+  {
+    label: 'Sin identificar',
+    icon: 'help-circle-outline' as const,
+    description: 'Fotos que no pudimos reconocer',
+    href: '/unknown' as const,
+  },
 ];
 
 export default function DashboardScreen() {
@@ -34,7 +40,10 @@ export default function DashboardScreen() {
 
   return (
     <AuthGuard>
-      <View style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+      >
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeText}>
             Hola,{' '}
@@ -64,7 +73,7 @@ export default function DashboardScreen() {
             </Card>
           ))}
         </View>
-      </View>
+      </ScrollView>
     </AuthGuard>
   );
 }
@@ -73,8 +82,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  content: {
     paddingHorizontal: 20,
     paddingTop: 24,
+    paddingBottom: 24,
   },
   welcomeSection: {
     marginBottom: 28,

@@ -6,14 +6,16 @@ import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { THEME, COLORS } from '../config/constants';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
+import { ConnectionErrorScreen } from '../components/ui/ConnectionErrorScreen';
 
 function RootLayoutNav() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, connectionError, retryConnection } =
+    useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || connectionError) return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
@@ -22,10 +24,14 @@ function RootLayoutNav() {
     } else if (isAuthenticated && inAuthGroup) {
       router.replace('/' as any);
     }
-  }, [isAuthenticated, loading, segments, router]);
+  }, [isAuthenticated, loading, connectionError, segments, router]);
 
   if (loading) {
     return <LoadingScreen />;
+  }
+
+  if (connectionError) {
+    return <ConnectionErrorScreen onRetry={retryConnection} />;
   }
 
   return <Slot />;

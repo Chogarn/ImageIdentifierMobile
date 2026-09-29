@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  ApiError,
   apiClient,
   getToken,
   setToken,
@@ -18,10 +19,13 @@ interface AuthState {
   user: User | null;
   token: string | null;
   loading: boolean;
+  // hay token guardado pero el servidor no respondió: no se cierra la sesión, se ofrece reintentar.
+  connectionError: boolean;
 }
 
 type AuthAction =
   | { type: 'SET_AUTH'; payload: { user: User; token: string } }
+  | { type: 'CONNECTION_ERROR'; payload: { token: string } }
   | { type: 'LOGOUT' }
   | { type: 'SET_LOADING'; payload: boolean };
 
@@ -30,6 +34,7 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
+  retryConnection: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,11 +46,23 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         user: action.payload.user,
         token: action.payload.token,
         loading: false,
+        connectionError: false,
+      };
+    case 'CONNECTION_ERROR':
+      return {
+        user: null,
+        token: action.payload.token,
+        loading: false,
+        connectionError: true,
       };
     case 'LOGOUT':
-      return { user: null, token: null, loading: false };
+      return { user: null, token: null, loading: false, connectionError: false };
     case 'SET_LOADING':
-      return { ...state, loading: action.payload };
+      return {
+        ...state,
+        loading: action.payload,
+        connectionError: action.payload ? false : state.connectionError,
+      };
   }
 }
 
@@ -54,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: null,
     token: null,
     loading: true,
+    connectionError: false,
   });
 
   const fetchProfile = useCallback(async (jwt: string) => {
@@ -62,7 +80,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { Authorization: `Bearer ${jwt}` },
       });
       dispatch({ type: 'SET_AUTH', payload: { user: data, token: jwt } });
-    } catch {
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 0) {
+        // sin conexión: el token sigue siendo válido, no hay que borrarlo.
+        dispatch({ type: 'CONNECTION_ERROR', payload: { token: jwt } });
+        return;
+      }
       await removeToken();
       dispatch({ type: 'LOGOUT' });
     }
@@ -77,6 +100,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
   }, [fetchProfile]);
+
+  const retryConnection = () => {
+    if (!state.token) return;
+    dispatch({ type: 'SET_LOADING', payload: true });
+    fetchProfile(state.token);
+  };
 
   const login = async (email: string, password: string) => {
     const data = await apiClient<LoginResponse>('/auth/login', {
@@ -110,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        retryConnection,
       }}
     >
       {children}
