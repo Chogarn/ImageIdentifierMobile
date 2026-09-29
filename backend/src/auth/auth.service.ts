@@ -11,6 +11,18 @@ import { User } from '../users/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
+// datos del usuario que se le devuelven a la app (nunca incluye la contraseña).
+function toPublicUser(user: User) {
+  return {
+    id: user.id,
+    nombre: user.nombre,
+    apellido: user.apellido,
+    email: user.email,
+    nombreUsuario: user.nombreUsuario,
+    telefono: user.telefono,
+  };
+}
+
 
 @Injectable()
 export class AuthService {
@@ -66,14 +78,19 @@ export class AuthService {
 
     return {
       access_token: token,
-      user: {
-        id: user.id,
-        nombre: user.nombre,
-        apellido: user.apellido,
-        email: user.email,
-        nombreUsuario: user.nombreUsuario,
-      },
+      user: toPublicUser(user),
     };
   }
-  
+
+  // el token solo trae id y email; acá se lee el usuario completo para que la app
+  // tenga nombre, apellido, etc. también al restaurar la sesión.
+  async getProfile(userId: string) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+
+    return toPublicUser(user);
+  }
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { TextInput, Text, HelperText } from 'react-native-paper';
 import { COLORS } from '../../config/constants';
@@ -25,13 +26,26 @@ export function Input({
   disabled = false,
   multiline = false,
 }: InputProps) {
+  // en campos de contraseña, el ojito alterna entre ocultar y mostrar el texto.
+  const [hidden, setHidden] = useState(true);
+
   return (
     <TextInput
       label={label}
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
-      secureTextEntry={secureTextEntry}
+      secureTextEntry={secureTextEntry && hidden}
+      right={
+        secureTextEntry ? (
+          <TextInput.Icon
+            icon={hidden ? 'eye' : 'eye-off'}
+            color={COLORS.textSecondary}
+            onPress={() => setHidden((h) => !h)}
+            forceTextInputFocus={false}
+          />
+        ) : undefined
+      }
       keyboardType={keyboardType}
       disabled={disabled}
       multiline={multiline}

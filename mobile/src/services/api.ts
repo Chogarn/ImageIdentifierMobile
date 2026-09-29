@@ -38,20 +38,33 @@ export async function apiClient<T = unknown>(
     headers['Content-Type'] = 'application/json';
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...rest,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${endpoint}`, {
+      ...rest,
+      headers,
+    });
+  } catch {
+    // fetch solo lanza si no hubo respuesta (sin red, servidor apagado).
+    throw new Error(
+      'No pudimos conectar con el servidor. Revisá tu conexión y reintentá.',
+    );
+  }
 
   if (response.status === 401) {
     await removeToken();
     throw new Error('Sesión expirada. Inicia sesión de nuevo.');
   }
 
-  const data = await response.json();
+  // el DELETE responde 204 sin cuerpo, y un error de proxy/servidor puede no ser JSON.
+  const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(data.message || 'Error en la solicitud');
+    // Nest devuelve `message` como array cuando falla una validación.
+    const message = Array.isArray(data?.message)
+      ? data.message.join('. ')
+      : data?.message;
+    throw new Error(message || 'Error en la solicitud');
   }
 
   return data as T;

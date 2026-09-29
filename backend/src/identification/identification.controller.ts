@@ -8,6 +8,10 @@ import {
   Request,
   Query,
   Get,
+  Delete,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
@@ -50,4 +54,16 @@ export class IdentificationController {
     return this.identificationService.getHistory(req.user.userId, tipo);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get(':id')
+  async getOne(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
+    return this.identificationService.getOne(id, req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  @HttpCode(204)
+  async remove(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
+    await this.identificationService.remove(id, req.user.userId);
+  }
 }

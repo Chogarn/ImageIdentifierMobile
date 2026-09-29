@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { FlatList, View, StyleSheet } from 'react-native';
 import { ActivityIndicator, Text } from 'react-native-paper';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { AuthGuard } from '../auth/AuthGuard';
 import { ScreenHeader } from '../ui/ScreenHeader';
 import { Card } from '../ui/Card';
+import { Button } from '../ui/Button';
 import { apiClient } from '../../services/api';
 import { COLORS } from '../../config/constants';
 import type { Identification } from '../../types';
@@ -15,8 +17,11 @@ interface HistoryListProps {
 }
 
 export function HistoryList({ title, tipo, emptyHint }: HistoryListProps) {
+  const router = useRouter();
   const [items, setItems] = useState<Identification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchItems = useCallback(async () => {
     try {
@@ -24,16 +29,33 @@ export function HistoryList({ title, tipo, emptyHint }: HistoryListProps) {
         `/identification/history?tipo=${tipo}`,
       );
       setItems(data);
-    } catch {
-      setItems([]);
+      setError(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'No pudimos cargar el historial.',
+      );
     } finally {
       setLoading(false);
     }
   }, [tipo]);
 
-  useEffect(() => {
+  // recarga cada vez que la pantalla vuelve a estar en foco (ej: al volver del detalle tras borrar).
+  useFocusEffect(
+    useCallback(() => {
+      fetchItems();
+    }, [fetchItems]),
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchItems();
+    setRefreshing(false);
+  };
+
+  const retry = () => {
+    setLoading(true);
     fetchItems();
-  }, [fetchItems]);
+  };
 
   return (
     <AuthGuard>
@@ -43,6 +65,13 @@ export function HistoryList({ title, tipo, emptyHint }: HistoryListProps) {
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
+        ) : error && items.length === 0 ? (
+          <View style={styles.center}>
+            <Text style={styles.emptyTitle}>{error}</Text>
+            <Button mode="outlined" onPress={retry}>
+              Reintentar
+            </Button>
           </View>
         ) : items.length === 0 ? (
           <View style={styles.center}>
@@ -56,8 +85,18 @@ export function HistoryList({ title, tipo, emptyHint }: HistoryListProps) {
             data={items}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             renderItem={({ item }) => (
-              <Card style={styles.card}>
+              <Card
+                style={styles.card}
+                onPress={() =>
+                  router.push({
+                    pathname: '/identification/[id]',
+                    params: { id: item.id },
+                  })
+                }
+              >
                 <View style={styles.cardContent}>
                   <Text style={styles.nombre}>{item.nombreComun}</Text>
                   <Text style={styles.cientifico}>

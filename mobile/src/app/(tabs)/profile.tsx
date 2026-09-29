@@ -9,20 +9,31 @@ import { COLORS } from '../../config/constants';
 
 interface ProfileFieldProps {
   label: string;
-  value: string;
+  value?: string;
+  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  last?: boolean;
 }
 
-function ProfileField({ label, value }: ProfileFieldProps) {
+function ProfileField({ label, value, icon, last }: ProfileFieldProps) {
   return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{value}</Text>
+    <View style={[styles.field, !last && styles.fieldDivider]}>
+      <MaterialCommunityIcons
+        name={icon}
+        size={22}
+        color={COLORS.primary}
+        style={styles.fieldIcon}
+      />
+      <View style={styles.fieldText}>
+        <Text style={styles.fieldLabel}>{label}</Text>
+        <Text style={styles.fieldValue}>{value || '—'}</Text>
+      </View>
     </View>
   );
 }
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+  const fullName = [user?.nombre, user?.apellido].filter(Boolean).join(' ');
 
   return (
     <AuthGuard>
@@ -35,18 +46,44 @@ export default function ProfileScreen() {
               color={COLORS.primary}
             />
           </View>
-          <Text style={styles.username}>{user?.nombreUsuario}</Text>
+          <Text style={styles.fullName}>
+            {user?.nombreUsuario || fullName}
+          </Text>
+          {!!fullName && !!user?.nombreUsuario && (
+            <Text style={styles.username}>{fullName}</Text>
+          )}
         </View>
 
         <Card style={styles.card}>
-          <View style={styles.fieldsContainer}>
-            <ProfileField label="Nombre" value={user?.nombre || ''} />
-            <ProfileField label="Apellido" value={user?.apellido || ''} />
-            <ProfileField label="Email" value={user?.email || ''} />
-            {user?.telefono && (
-              <ProfileField label="Teléfono" value={user.telefono} />
-            )}
-          </View>
+          <ProfileField
+            icon="at"
+            label="Usuario"
+            value={user?.nombreUsuario}
+          />
+          <ProfileField
+            icon="account-outline"
+            label="Nombre"
+            value={user?.nombre}
+          />
+          <ProfileField
+            icon="account-details-outline"
+            label="Apellido"
+            value={user?.apellido}
+          />
+          <ProfileField
+            icon="email-outline"
+            label="Email"
+            value={user?.email}
+            last={!user?.telefono}
+          />
+          {!!user?.telefono && (
+            <ProfileField
+              icon="phone-outline"
+              label="Teléfono"
+              value={user.telefono}
+              last
+            />
+          )}
         </Card>
 
         <Button
@@ -66,35 +103,52 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
     paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingTop: 32,
   },
   avatarSection: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 28,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     backgroundColor: COLORS.surface,
     borderWidth: 2,
     borderColor: COLORS.border,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  username: {
-    fontSize: 18,
+  fullName: {
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.textPrimary,
   },
+  username: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
   card: {
     marginBottom: 24,
-  },
-  fieldsContainer: {
-    gap: 16,
+    paddingHorizontal: 16,
   },
   field: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 14,
+  },
+  fieldDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  fieldIcon: {
+    width: 24,
+  },
+  fieldText: {
+    flex: 1,
     gap: 2,
   },
   fieldLabel: {

@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadGatewayException,
+  NotFoundException,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
@@ -56,6 +57,8 @@ export class IdentificationService {
 
     const todayCount = await this.identificationRepository.count({
       where: { createdAt: Between(startOfDay, endOfDay) },
+      // incluye las borradas: borrar del historial no devuelve cupo de Gemini.
+      withDeleted: true,
     });
 
     if (todayCount >= dailyLimit) {
@@ -161,5 +164,30 @@ export class IdentificationService {
       order: { createdAt: 'DESC' },
     });
 
+  }
+
+  // el método getOne devuelve una identificación del usuario, o 404 si no existe o no es suya.
+  async getOne(id: string, userId: string): Promise<Identification> {
+    const found = await this.identificationRepository.findOne({
+      where: { id, userId },
+    });
+
+    if (!found) {
+      throw new NotFoundException('Identificación no encontrada');
+    }
+
+    return found;
+  }
+
+  // el método remove oculta una identificación del historial (borrado lógico). Solo el dueño puede borrarla.
+  async remove(id: string, userId: string): Promise<void> {
+    const result = await this.identificationRepository.softDelete({
+      id,
+      userId,
+    });
+
+    if (!result.affected) {
+      throw new NotFoundException('Identificación no encontrada');
+    }
   }
 }

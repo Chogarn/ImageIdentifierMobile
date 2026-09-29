@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
@@ -42,4 +43,9 @@ export class Identification {
 
   @CreateDateColumn()
   createdAt!: Date;
+
+  // borrado lógico: la fila queda en la base pero oculta del historial.
+  // así el tope diario anti-costo de Gemini sigue contando lo ya consumido.
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

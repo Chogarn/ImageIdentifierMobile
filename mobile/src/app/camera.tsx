@@ -4,15 +4,15 @@ import { Text } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { File } from 'expo-file-system';
-
-const MAX_WIDTH = 1024;
 import { AuthGuard } from '../components/auth/AuthGuard';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
 import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
+import { IdentificationResult } from '../components/identification/IdentificationResult';
 import { apiClient } from '../services/api';
 import { COLORS } from '../config/constants';
 import type { Identification } from '../types';
+
+const MAX_WIDTH = 1024;
 
 export default function CameraScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -134,24 +134,11 @@ export default function CameraScreen() {
           {error && <Text style={styles.error}>{error}</Text>}
 
           {result && (
-            <Card style={styles.resultCard}>
-              <View style={styles.resultContent}>
-                <Text style={styles.resultTipo}>{result.tipo}</Text>
-                <Text style={styles.resultNombre}>{result.nombreComun}</Text>
-                <Text style={styles.resultCientifico}>
-                  {result.nombreCientifico}
-                </Text>
-                <Text style={styles.resultDescripcion}>
-                  {result.descripcion}
-                </Text>
-                <Text style={styles.resultMeta}>
-                  Familia: {result.familia} · Confianza: {result.nivelConfianza}
-                </Text>
-                <Button mode="outlined" onPress={reset} style={styles.again}>
-                  Identificar otra
-                </Button>
-              </View>
-            </Card>
+            <IdentificationResult item={result}>
+              <Button mode="outlined" onPress={reset} style={styles.again}>
+                Identificar otra
+              </Button>
+            </IdentificationResult>
           )}
         </ScrollView>
       </View>
@@ -182,39 +169,6 @@ const styles = StyleSheet.create({
   error: {
     color: COLORS.error,
     textAlign: 'center',
-  },
-  resultCard: {
-    width: '100%',
-  },
-  resultContent: {
-    padding: 16,
-  },
-  resultTipo: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.primary,
-    textTransform: 'uppercase',
-  },
-  resultNombre: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginTop: 4,
-  },
-  resultCientifico: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: COLORS.textSecondary,
-  },
-  resultDescripcion: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
-    marginTop: 8,
-  },
-  resultMeta: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 8,
   },
   again: {
     marginTop: 12,
