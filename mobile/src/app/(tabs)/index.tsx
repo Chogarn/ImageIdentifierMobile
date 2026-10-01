@@ -21,12 +21,6 @@ const options = [
     href: '/plants' as const,
   },
   {
-    label: 'Cámara',
-    icon: 'camera' as const,
-    description: 'Captura una imagen',
-    href: '/camera' as const,
-  },
-  {
     label: 'Sin identificar',
     icon: 'help-circle-outline' as const,
     description: 'Fotos que no pudimos reconocer',

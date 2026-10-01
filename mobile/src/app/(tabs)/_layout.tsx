@@ -1,6 +1,28 @@
-import { Tabs } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../../config/constants';
+
+// botón central: abre la pantalla de cámara en lugar de cambiar de pestaña.
+function CameraTabButton() {
+  const router = useRouter();
+
+  return (
+    <View style={styles.cameraSlot}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Identificar con la cámara"
+        onPress={() => router.push('/camera')}
+        style={({ pressed }) => [
+          styles.cameraButton,
+          pressed && styles.cameraButtonPressed,
+        ]}
+      >
+        <MaterialCommunityIcons name="camera" size={26} color={COLORS.white} />
+      </Pressable>
+    </View>
+  );
+}
 
 export default function TabsLayout() {
   return (
@@ -14,8 +36,8 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: COLORS.surface,
           borderTopColor: COLORS.border,
-          height: 60,
-          paddingBottom: 8,
+          height: 68,
+          paddingBottom: 12,
           paddingTop: 4,
         },
         tabBarLabelStyle: {
@@ -35,6 +57,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="scan"
+        options={{
+          title: 'Cámara',
+          tabBarButton: () => <CameraTabButton />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Perfil',
@@ -47,3 +76,23 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  cameraSlot: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  cameraButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+  },
+  cameraButtonPressed: {
+    backgroundColor: COLORS.primaryLight,
+  },
+});
