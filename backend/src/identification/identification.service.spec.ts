@@ -51,6 +51,27 @@ describe('IdentificationService', () => {
     });
   });
 
+  describe('getImageFile', () => {
+    it('devuelve el archivo de la foto del usuario', async () => {
+      repository.findOne.mockResolvedValue({ id: 'id-1', imageFile: 'a.jpeg' });
+
+      await expect(service.getImageFile('id-1', 'user-1')).resolves.toBe(
+        'a.jpeg',
+      );
+      expect(repository.findOne).toHaveBeenCalledWith({
+        where: { id: 'id-1', userId: 'user-1' },
+      });
+    });
+
+    it('lanza 404 si la identificación no tiene foto', async () => {
+      repository.findOne.mockResolvedValue({ id: 'id-1', imageFile: null });
+
+      await expect(
+        service.getImageFile('id-1', 'user-1'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
   describe('getOne', () => {
     it('lanza 404 si no existe o no es del usuario', async () => {
       repository.findOne.mockResolvedValue(null);

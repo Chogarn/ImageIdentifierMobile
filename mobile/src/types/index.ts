@@ -29,5 +29,7 @@ export interface Identification {
   familia: string;
   descripcion: string;
   nivelConfianza: 'alto' | 'medio' | 'bajo';
+  // null en las identificaciones de antes de que se guardaran las fotos.
+  imageFile?: string | null;
   createdAt?: string;
 }

@@ -10,6 +10,19 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Identification } from './entities/identification.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
+import { randomUUID } from 'crypto';
+import { mkdir, unlink, writeFile } from 'fs/promises';
+import { join, resolve } from 'path';
+
+// formatos de foto que se guardan en disco. Otros tipos (ej: svg) se identifican igual,
+// pero no se guardan: servirlos de vuelta podría ser inseguro.
+const STORABLE_IMAGE_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpeg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+};
 
 // la interfaz IdentificationResult define la estructura de los datos que se esperan recibir del modelo de IA generativa. 
 // Esta interfaz asegura que los datos tengan el formato correcto antes de ser guardados en la base de datos.
@@ -29,6 +42,8 @@ export class IdentificationService {
   // timestamps (ms) de las últimas llamadas a Gemini, para el cupo por minuto.
   // vive en memoria del proceso: alcanza para un proyecto personal de un solo backend.
   private geminiCallTimestamps: number[] = [];
+  // carpeta donde se guardan las fotos subidas (configurable con UPLOADS_DIR).
+  readonly uploadsDir: string;
 
   // el constructor del servicio de identificación inyecta el ConfigService para acceder a las variables de entorno y el repositorio de identificaciones para interactuar con la base de datos.
   constructor(
@@ -38,6 +53,9 @@ export class IdentificationService {
   ) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
     this.genAI = new GoogleGenerativeAI(apiKey as string);
+    this.uploadsDir = resolve(
+      this.configService.get<string>('UPLOADS_DIR') ?? 'uploads',
+    );
   }
 
   // corta ANTES de llamar a Gemini si nos acercamos al free tier (diario o por minuto),
@@ -136,12 +154,23 @@ export class IdentificationService {
       const result = await model.generateContent([prompt, imagePart]);
       const parsed: IdentificationResult = JSON.parse(result.response.text());
 
+      // la foto se guarda recién cuando Gemini respondió bien, para no dejar archivos huérfanos.
+      const imageFile = await this.storeImage(imageBuffer, mimeType);
+
       const newIdentification = this.identificationRepository.create({
         ...parsed,
+        imageFile,
         userId,
       });
 
-      return await this.identificationRepository.save(newIdentification);
+      try {
+        return await this.identificationRepository.save(newIdentification);
+      } catch (saveError) {
+        if (imageFile) {
+          await unlink(join(this.uploadsDir, imageFile)).catch(() => {});
+        }
+        throw saveError;
+      }
 
     } catch (error) {
       console.error('Error en identificación:', error);
@@ -149,6 +178,33 @@ export class IdentificationService {
         'Error al procesar la imagen con el servicio de identificación',
       );
     }
+  }
+
+  // guarda la foto en la carpeta de uploads y devuelve el nombre del archivo, o null si el formato no se guarda.
+  private async storeImage(
+    imageBuffer: Buffer,
+    mimeType: string,
+  ): Promise<string | null> {
+    const extension = STORABLE_IMAGE_EXTENSIONS[mimeType];
+    if (!extension) {
+      return null;
+    }
+
+    const fileName = `${randomUUID()}.${extension}`;
+    await mkdir(this.uploadsDir, { recursive: true });
+    await writeFile(join(this.uploadsDir, fileName), imageBuffer);
+    return fileName;
+  }
+
+  // devuelve el nombre del archivo de la foto de una identificación del usuario, o 404 si no tiene foto.
+  async getImageFile(id: string, userId: string): Promise<string> {
+    const found = await this.getOne(id, userId);
+
+    if (!found.imageFile) {
+      throw new NotFoundException('Esta identificación no tiene foto');
+    }
+
+    return found.imageFile;
   }
 
   // el método getHistory recupera el historial de identificaciones de un usuario, opcionalmente filtrando por tipo de identificación.  

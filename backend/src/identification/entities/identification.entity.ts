@@ -34,6 +34,11 @@ export class Identification {
   @Column()
   nivelConfianza!: string;
 
+  // nombre del archivo de la foto dentro de la carpeta de uploads (ej: "<uuid>.jpeg").
+  // null en las identificaciones viejas, de antes de que se guardaran las fotos.
+  @Column({ type: 'varchar', nullable: true })
+  imageFile!: string | null;
+
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user!: User;

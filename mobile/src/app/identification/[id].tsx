@@ -6,6 +6,7 @@ import { AuthGuard } from '../../components/auth/AuthGuard';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { Button } from '../../components/ui/Button';
 import { IdentificationResult } from '../../components/identification/IdentificationResult';
+import { IdentificationImage } from '../../components/identification/IdentificationImage';
 import { apiClient } from '../../services/api';
 import { COLORS } from '../../config/constants';
 import type { Identification } from '../../types';
@@ -78,6 +79,13 @@ export default function IdentificationDetailScreen() {
         ) : (
           <ScrollView contentContainerStyle={styles.content}>
             {item && (
+              <IdentificationImage
+                item={item}
+                style={styles.photo}
+                iconSize={64}
+              />
+            )}
+            {item && (
               <IdentificationResult item={item}>
                 <Button
                   mode="outlined"
@@ -112,6 +120,11 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 16,
     alignItems: 'center',
+  },
+  photo: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 16,
   },
   delete: {
     marginTop: 12,
