@@ -3,15 +3,8 @@ import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getToken } from '../../services/api';
-import { API_URL } from '../../config/constants';
+import { API_URL, TIPO_STYLE } from '../../config/constants';
 import type { Identification } from '../../types';
-
-// color e ícono por tipo, para cuando no hay foto (identificaciones viejas o error al cargarla).
-const PLACEHOLDER = {
-  planta: { icon: 'sprout', background: '#C0DD97', color: '#27500A' },
-  animal: { icon: 'paw', background: '#FAC775', color: '#633806' },
-  desconocido: { icon: 'help', background: '#D3D1C7', color: '#444441' },
-} as const;
 
 interface IdentificationImageProps {
   item: Pick<Identification, 'id' | 'tipo' | 'imageFile'>;
@@ -19,7 +12,7 @@ interface IdentificationImageProps {
   iconSize?: number;
 }
 
-// muestra la foto guardada de una identificación. La pide al backend con el token,
+// muestra la foto guardada (o un ícono del color del tipo si no hay foto) de una identificación. La pide al backend con el token,
 // porque las fotos son privadas de cada usuario.
 export function IdentificationImage({
   item,
@@ -35,21 +28,21 @@ export function IdentificationImage({
     }
   }, [item.imageFile]);
 
-  const placeholder = PLACEHOLDER[item.tipo] ?? PLACEHOLDER.desconocido;
+  const tipo = TIPO_STYLE[item.tipo] ?? TIPO_STYLE.desconocido;
 
   if (!item.imageFile || failed) {
     return (
       <View
         style={[
           styles.placeholder,
-          { backgroundColor: placeholder.background },
+          { backgroundColor: tipo.strong },
           style,
         ]}
       >
         <MaterialCommunityIcons
-          name={placeholder.icon}
+          name={tipo.icon}
           size={iconSize}
-          color={placeholder.color}
+          color={tipo.text}
         />
       </View>
     );
@@ -60,7 +53,7 @@ export function IdentificationImage({
     <View
       style={[
         styles.frame,
-        { backgroundColor: placeholder.background },
+        { backgroundColor: tipo.strong },
         style,
       ]}
     >

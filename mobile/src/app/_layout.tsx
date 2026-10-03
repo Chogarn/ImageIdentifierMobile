@@ -4,7 +4,7 @@ import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
-import { THEME, COLORS } from '../config/constants';
+import { THEME } from '../config/constants';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
 import { ConnectionErrorScreen } from '../components/ui/ConnectionErrorScreen';
 
@@ -42,7 +42,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <PaperProvider theme={THEME}>
         <AuthProvider>
-          <StatusBar style="light" />
+          <StatusBar style="dark" />
           <RootLayoutNav />
         </AuthProvider>
       </PaperProvider>

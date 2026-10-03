@@ -1,4 +1,4 @@
-import { ActivityIndicator, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Button as PaperButton } from 'react-native-paper';
 import { COLORS } from '../../config/constants';
 
@@ -9,6 +9,8 @@ interface ButtonProps {
   disabled?: boolean;
   children: string;
   style?: object;
+  // rojo, para acciones destructivas (ej: eliminar).
+  danger?: boolean;
 }
 
 export function Button({
@@ -18,16 +20,23 @@ export function Button({
   disabled = false,
   children,
   style,
+  danger = false,
 }: ButtonProps) {
+  const color = danger ? COLORS.error : COLORS.primary;
+
   return (
     <PaperButton
       mode={mode}
       onPress={onPress}
       disabled={disabled || loading}
       loading={loading}
-      buttonColor={mode === 'contained' ? COLORS.primary : undefined}
-      textColor={mode === 'contained' ? COLORS.white : COLORS.primary}
-      style={[styles.button, style]}
+      buttonColor={mode === 'contained' ? color : undefined}
+      textColor={mode === 'contained' ? COLORS.white : color}
+      style={[
+        styles.button,
+        mode === 'outlined' && { borderColor: danger ? COLORS.error : COLORS.border },
+        style,
+      ]}
       labelStyle={styles.label}
       contentStyle={styles.content}
     >

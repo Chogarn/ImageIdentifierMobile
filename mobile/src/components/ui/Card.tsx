@@ -1,5 +1,4 @@
-import { StyleSheet, View, type ViewStyle } from 'react-native';
-import { Card as PaperCard } from 'react-native-paper';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { COLORS } from '../../config/constants';
 
 interface CardProps {
@@ -8,15 +7,19 @@ interface CardProps {
   onPress?: () => void;
 }
 
+// tarjeta plana con borde fino. Si recibe onPress se oscurece un poco al tocarla.
 export function Card({ children, style, onPress }: CardProps) {
+  if (!onPress) {
+    return <View style={[styles.card, style]}>{children}</View>;
+  }
+
   return (
-    <PaperCard
-      style={[styles.card, style]}
+    <Pressable
       onPress={onPress}
-      mode="elevated"
+      style={({ pressed }) => [styles.card, pressed && styles.pressed, style]}
     >
       {children}
-    </PaperCard>
+    </Pressable>
   );
 }
 
@@ -26,6 +29,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-    elevation: 2,
+    overflow: 'hidden',
+  },
+  pressed: {
+    backgroundColor: COLORS.surfaceMuted,
   },
 });

@@ -3,7 +3,7 @@ import { Tabs, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../../config/constants';
 
-// botón central: abre la pantalla de cámara en lugar de cambiar de pestaña.
+// botón central: única entrada para identificar. Abre la cámara directo en lugar de cambiar de pestaña.
 function CameraTabButton() {
   const router = useRouter();
 
@@ -12,13 +12,13 @@ function CameraTabButton() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Identificar con la cámara"
-        onPress={() => router.push('/camera')}
+        onPress={() => router.push('/camera?source=camera')}
         style={({ pressed }) => [
           styles.cameraButton,
           pressed && styles.cameraButtonPressed,
         ]}
       >
-        <MaterialCommunityIcons name="camera" size={26} color={COLORS.white} />
+        <MaterialCommunityIcons name="camera" size={28} color={COLORS.white} />
       </Pressable>
     </View>
   );
@@ -28,17 +28,16 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: COLORS.primary },
-        headerTintColor: COLORS.white,
-        headerTitleStyle: { fontWeight: '700' },
+        // cada pantalla dibuja su propio título (diseño claro, sin barra verde).
+        headerShown: false,
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textSecondary,
         tabBarStyle: {
           backgroundColor: COLORS.surface,
           borderTopColor: COLORS.border,
-          height: 68,
+          height: 72,
           paddingBottom: 12,
-          paddingTop: 4,
+          paddingTop: 6,
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -50,9 +49,12 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Inicio',
-          headerTitle: 'ImageIdentifier',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <MaterialCommunityIcons
+              name={focused ? 'home' : 'home-outline'}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -64,12 +66,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="collection"
         options={{
-          title: 'Perfil',
-          headerTitle: 'Mi Perfil',
+          title: 'Colección',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account" size={size} color={color} />
+            <MaterialCommunityIcons name="bookshelf" size={size} color={color} />
           ),
         }}
       />
@@ -84,15 +85,18 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   cameraButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    marginTop: -22,
+    borderWidth: 4,
+    borderColor: COLORS.surface,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 4,
   },
   cameraButtonPressed: {
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.primaryDark,
   },
 });

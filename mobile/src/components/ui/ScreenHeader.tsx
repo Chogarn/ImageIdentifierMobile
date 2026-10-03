@@ -8,6 +8,7 @@ interface ScreenHeaderProps {
   title: string;
 }
 
+// encabezado claro con flecha para volver, para las pantallas que se abren encima de las pestañas.
 export function ScreenHeader({ title }: ScreenHeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -16,7 +17,7 @@ export function ScreenHeader({ title }: ScreenHeaderProps) {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <IconButton
         icon="arrow-left"
-        iconColor={COLORS.white}
+        iconColor={COLORS.textPrimary}
         onPress={() => router.back()}
       />
       <Text style={styles.title}>{title}</Text>
@@ -28,12 +29,12 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primary,
-    paddingBottom: 8,
+    backgroundColor: COLORS.background,
+    paddingBottom: 4,
   },
   title: {
-    color: COLORS.white,
-    fontSize: 18,
-    fontWeight: '700',
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    fontWeight: '600',
   },
 });
